@@ -1,20 +1,59 @@
 import React, { useState, useEffect } from 'react';
+import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { SetupForm } from './components/SetupForm';
 import { RoutineDisplay } from './components/RoutineDisplay';
 import { SettingsPage } from './components/SettingsPage';
+import { Dashboard } from './components/Dashboard';
+import { SavedRoutines } from './components/SavedRoutines';
+import { AIAssistant } from './components/AIAssistant';
 import { generateRoutine } from './services/geminiService';
-import { UserFormData, RoutineResponse } from './types';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { UserFormData, RoutineResponse, SavedRoutine } from './types';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MotivationalPopup } from './components/MotivationalPopup';
+
+const DEMO_ROUTINE: RoutineResponse = {
+  title: "The CEO Morning Demo",
+  summary: {
+    wakeTime: "06:00",
+    sleepTarget: "10:00 PM - 06:00 AM",
+    duration: "45 Minutes",
+    focus: "Mental Clarity & Strategy"
+  },
+  blocks: [
+    {
+      timeRange: "06:00 - 06:05",
+      title: "Hydrate & Sunlight",
+      activities: ["Drink 500ml water with salt", "Get direct sunlight/bright light"],
+      explanation: "Kickstarts cortisol to wake you up.",
+      icon: "wake"
+    },
+    {
+      timeRange: "06:05 - 06:25",
+      title: "Deep Work / Strategy",
+      activities: ["Review top 3 goals", "Journal or plan day"],
+      explanation: "Brain is freshest. Do not check phone.",
+      icon: "mind"
+    },
+    {
+      timeRange: "06:25 - 06:45",
+      title: "Movement",
+      activities: ["Kettlebell swings", "Stretching"],
+      explanation: "Raises body temp and energy.",
+      icon: "move"
+    }
+  ]
+};
 
 function AppContent() {
   const { settings } = useSettings();
-  const [view, setView] = useState<'home' | 'setup' | 'result' | 'settings'>('home');
-  const [previousView, setPreviousView] = useState<'home' | 'setup' | 'result'>('home');
+  const { isAuthenticated } = useAuth();
   
-  // Profile State with Persistence
+  // Views: 'home' | 'dashboard' | 'setup' | 'result' | 'settings' | 'saved'
+  const [view, setView] = useState<string>('home');
+  
+  // Profile State
   const [formData, setFormData] = useState<UserFormData | null>(() => {
     const saved = localStorage.getItem('morningForgeProfile');
     try {
@@ -24,107 +63,48 @@ function AppContent() {
     }
   });
 
-  const [routine, setRoutine] = useState<RoutineResponse | null>(() => {
-     const saved = localStorage.getItem('morningForgeRoutine');
-     try {
-       return saved ? JSON.parse(saved) : null;
-     } catch {
-       return null;
-     }
-  });
-
+  const [routine, setRoutine] = useState<RoutineResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Persist Profile & Routine
+  // Auto-redirect if logged in on load
+  useEffect(() => {
+    if (isAuthenticated && view === 'home') {
+      setView('dashboard');
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (formData) {
       localStorage.setItem('morningForgeProfile', JSON.stringify(formData));
-    } else {
-      localStorage.removeItem('morningForgeProfile');
     }
   }, [formData]);
 
-  useEffect(() => {
-    if (routine) {
-      localStorage.setItem('morningForgeRoutine', JSON.stringify(routine));
-    } else {
-      localStorage.removeItem('morningForgeRoutine');
-    }
-  }, [routine]);
-
-  // Apply Global Settings Side Effects
+  // Apply Global Settings
   useEffect(() => {
     const root = document.documentElement;
-    
-    // 1. Theme Logic
     const applyTheme = () => {
         const isDark = settings.theme === 'dark' || 
             (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        
-        if (isDark) {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
+        isDark ? root.classList.add('dark') : root.classList.remove('dark');
     };
     applyTheme();
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleMediaChange = () => {
-        if (settings.theme === 'auto') applyTheme();
-    };
-    mediaQuery.addEventListener('change', handleMediaChange);
-
-    // 2. Font Size
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+       if (settings.theme === 'auto') applyTheme();
+    });
+    
+    // Fonts & Accessibility
     const sizeMap = { sm: '14px', md: '16px', lg: '18px', xl: '20px' };
     root.style.fontSize = sizeMap[settings.fontSize];
-
-    // 3. High Contrast
-    if (settings.highContrast) {
-      document.body.classList.add('high-contrast');
-    } else {
-      document.body.classList.remove('high-contrast');
-    }
-
-    // 4. Reduced Motion
-    if (settings.reducedMotion) {
-      document.body.classList.add('reduced-motion');
-    } else {
-      document.body.classList.remove('reduced-motion');
-    }
-
-    // 5. Dyslexia Font
-    if (settings.dyslexiaFont) {
-      document.body.style.fontFamily = '"Comic Sans MS", "Chalkboard SE", sans-serif'; 
-    } else {
-      document.body.style.fontFamily = '';
-    }
-
-    return () => mediaQuery.removeEventListener('change', handleMediaChange);
-
+    document.body.classList.toggle('high-contrast', settings.highContrast);
+    document.body.classList.toggle('reduced-motion', settings.reducedMotion);
+    document.body.style.fontFamily = settings.dyslexiaFont ? '"Comic Sans MS", "Chalkboard SE", sans-serif' : '';
   }, [settings]);
 
-  const handleStart = () => {
-    if (formData && routine) {
-        setView('result'); // If they already have a routine, go there
-    } else if (formData) {
-        setView('setup'); // Have data but no routine? Setup.
-    } else {
-        setView('setup');
-    }
-  };
-
-  const openSettings = () => {
-    if (view !== 'settings') {
-        setPreviousView(view);
-        setView('settings');
-    } else {
-        setView(previousView);
-    }
-  };
-
-  const closeSettings = () => {
-    setView(previousView);
+  const handleStart = () => setView('setup');
+  
+  const handleDemo = () => {
+    setRoutine(DEMO_ROUTINE);
+    setView('result');
   };
 
   const handleFormSubmit = async (data: UserFormData) => {
@@ -134,11 +114,6 @@ function AppContent() {
       const generatedRoutine = await generateRoutine(data);
       setRoutine(generatedRoutine);
       setView('result');
-      
-      // Show Summary/Streak Toast Logic would go here
-      if (settings.notifications.routineSummary) {
-          // In a real app, trigger a toast here
-      }
     } catch (error) {
       alert("Failed to generate routine. Please try again.");
       console.error(error);
@@ -160,56 +135,68 @@ function AppContent() {
     }
   };
 
-  // Called from Settings to update and regen
-  const handleProfileUpdateAndRegen = async (newData: UserFormData) => {
-      setFormData(newData);
-      // If we are already in result view or want to go there
-      await handleRegenerate(newData);
-      if (view === 'settings') {
-          // Stay in settings or go to result? 
-          // Requirement: "Show popup... Buttons appear... When Regenerate is clicked -> instantly create"
-          // This function is the action of regenerating.
-      }
+  // Called from Saved Routines to load one
+  const handleLoadRoutine = (r: SavedRoutine) => {
+    setRoutine(r);
   };
 
-  const handleResetApp = () => {
-    setFormData(null);
-    setRoutine(null);
-    // Settings are reset inside SettingsPage via context
-    setView('home');
+  // Protected Route Logic wrapper
+  const ProtectedView = ({ children }: { children: React.ReactNode }) => {
+     if (!isAuthenticated) {
+       return (
+         <div className="min-h-screen pt-24 flex flex-col items-center justify-center p-4 text-center">
+            <h2 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">Access Denied</h2>
+            <p className="text-slate-500 mb-4">Please log in to access this page.</p>
+            <button onClick={() => setView('home')} className="text-indigo-600 underline">Go Home</button>
+         </div>
+       );
+     }
+     return <>{children}</>;
   };
 
   return (
     <div className={`font-sans text-slate-900 dark:text-white transition-colors min-h-screen`}>
-      {/* Motivational Popup (Loads on mount if enabled) */}
       <MotivationalPopup style={formData?.routineStyle} />
-
-      {/* Header for Settings Access - Always visible except in some flows if needed, but keeping it simple */}
-      <div className="fixed top-4 right-4 z-50">
-        <button 
-          onClick={openSettings}
-          className="p-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur shadow-sm hover:bg-white dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-600 group"
-          title="Settings"
-        >
-          <SettingsIcon className={`w-5 h-5 text-slate-600 dark:text-slate-300 group-hover:rotate-90 transition-transform duration-500`}/>
-        </button>
-      </div>
-
+      
+      <Navbar onNavigate={setView} currentView={view} />
+      
       {view === 'settings' && (
         <SettingsPage 
-          onClose={closeSettings}
+          onClose={() => setView(isAuthenticated ? 'dashboard' : 'home')}
           userData={formData}
-          onUpdateUserData={(d) => setFormData(d)}
-          onRegenerate={handleProfileUpdateAndRegen}
-          onResetApp={handleResetApp}
+          onUpdateUserData={setFormData}
+          onRegenerate={handleRegenerate}
+          onResetApp={() => setView('home')}
           currentRoutine={routine}
         />
       )}
 
-      {view === 'home' && <Hero onStart={handleStart} />}
+      {view === 'home' && <Hero onStart={handleStart} onDemo={handleDemo} />}
+      
+      {view === 'dashboard' && (
+        <ProtectedView>
+           <Dashboard 
+             onNavigate={setView} 
+             onSetRoutine={handleLoadRoutine} 
+             activeRoutine={routine as SavedRoutine}
+             userData={formData}
+           />
+        </ProtectedView>
+      )}
+
+      {view === 'saved' && (
+        <ProtectedView>
+           <SavedRoutines 
+             onLoadRoutine={handleLoadRoutine} 
+             onNavigate={setView} 
+           />
+        </ProtectedView>
+      )}
       
       {view === 'setup' && (
-        <SetupForm onSubmit={handleFormSubmit} isLoading={isLoading} />
+        <div className="pt-16">
+          <SetupForm onSubmit={handleFormSubmit} isLoading={isLoading} />
+        </div>
       )}
       
       {view === 'result' && routine && (
@@ -221,6 +208,8 @@ function AppContent() {
           simplifiedMode={settings.simplifiedMode}
         />
       )}
+
+      <AIAssistant currentRoutine={routine} />
     </div>
   );
 }
@@ -228,7 +217,9 @@ function AppContent() {
 export default function App() {
     return (
         <SettingsProvider>
-            <AppContent />
+            <AuthProvider>
+               <AppContent />
+            </AuthProvider>
         </SettingsProvider>
     )
 }

@@ -1,3 +1,4 @@
+
 export enum GoalType {
   MUSCLE = 'Build muscle / better physique',
   WEIGHT_LOSS = 'Lose weight / get lean',
@@ -68,6 +69,30 @@ export interface RoutineResponse {
     focus: string;
   };
   blocks: RoutineBlock[];
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email?: string;
+  createdAt: string;
+}
+
+export interface SavedRoutine extends RoutineResponse {
+  id: string;
+  createdAt: string;
+  goals: GoalType[];
+  style: 'Chill' | 'Efficient' | 'Hardcore';
+}
+
+export interface Streak {
+  currentStreak: number;
+  lastCompletedDate: string; // YYYY-MM-DD
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
 }
 
 export interface AppSettings {

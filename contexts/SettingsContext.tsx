@@ -13,7 +13,8 @@ const SettingsContext = createContext<SettingsContextType>({
   resetSettings: () => {},
 });
 
-export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Fixed: Use explicit props type for children instead of React.FC to ensure compatibility
+export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const [settings, setSettings] = useState<AppSettings>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('morningForgeSettings');

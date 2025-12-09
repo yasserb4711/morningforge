@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { UserFormData, RoutineResponse } from "../types";
+import { UserFormData, RoutineResponse, ChatMessage } from "../types";
 
 const SYSTEM_INSTRUCTION = `
 You are an expert high-performance coach for Morning Forge. 
@@ -122,3 +122,43 @@ export const generateMotivationalQuote = async (style: string, lastQuote?: strin
       return "Focus on the step in front of you."; // Fallback
   }
 }
+
+export const chatWithAssistant = async (
+  message: string, 
+  history: ChatMessage[], 
+  context?: { routine?: RoutineResponse, goals?: string[] }
+): Promise<string> => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return "I'm offline right now (Missing API Key).";
+  const ai = new GoogleGenAI({ apiKey });
+
+  const contextStr = context ? `
+    CONTEXT:
+    Current Routine: ${context.routine ? JSON.stringify(context.routine.summary) : "None active"}
+    User Goals: ${context.goals ? context.goals.join(', ') : "Unknown"}
+  ` : '';
+
+  const systemInstruction = `
+    You are the MorningForge Assistant. Help users optimize their mornings.
+    Keep answers short, practical, and action-oriented.
+    If they ask to modify the routine, explain HOW they could do it (you cannot modify the app state directly).
+    ${contextStr}
+  `;
+
+  try {
+    const chat = ai.chats.create({
+      model: 'gemini-2.5-flash',
+      config: { systemInstruction },
+      history: history.map(h => ({
+        role: h.role,
+        parts: [{ text: h.text }]
+      }))
+    });
+
+    const result = await chat.sendMessage({ message });
+    return result.text || "I didn't catch that.";
+  } catch (error) {
+    console.error("Chat error:", error);
+    return "Sorry, I'm having trouble thinking right now.";
+  }
+};

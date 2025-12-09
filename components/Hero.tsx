@@ -20,7 +20,6 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
   };
   
   const textAccent = textColors[color];
-  // Simple mapping for background blobs (using generic colors for simplicity as tailwind arbitrary values can be complex)
   const blobColor = color === 'teal' ? 'bg-teal-50' : color === 'rose' ? 'bg-rose-50' : 'bg-indigo-50';
 
   return (
@@ -34,18 +33,23 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className={`${textAccent} font-bold tracking-wide uppercase text-sm mb-4`}>Morning Forge</h2>
+          <div className="flex items-center justify-between mb-8 sm:hidden">
+             <span className={`${textAccent} font-bold uppercase tracking-wide text-sm`}>Morning Forge</span>
+             {/* Settings handled in App.tsx layout */}
+          </div>
+          
+          <h2 className={`${textAccent} font-bold tracking-wide uppercase text-sm mb-4 hidden sm:block`}>Morning Forge</h2>
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-6">
             Build Your Perfect <br className="hidden sm:block" />
             <span className={`${textAccent}`}>Morning Routine.</span>
           </h1>
           <p className="mt-4 text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto mb-10">
-            Tell us your schedule and goals. We’ll forge a morning routine that actually fits your life. No fluff. Specific, timed, and actionable.
+            Generate a realistic morning routine based on your schedule and goals. No fluff. Specific, timed, and actionable.
           </p>
           
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <div className="flex justify-center">
             <Button size="lg" onClick={onStart} className={`shadow-lg shadow-${color}-200 dark:shadow-none`}>
-              Start Free Routine Setup
+              Start Routine Setup
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
@@ -58,17 +62,24 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
         </div>
       </div>
 
-      {/* 2. WHAT IS MORNING FORGE */}
+      {/* 2. WHO IS THIS FOR? (Moved Up) */}
       <div className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-           <div className="text-center mb-12">
-             <h2 className="text-3xl font-bold text-slate-900 dark:text-white">What is MorningForge?</h2>
-             <div className={`w-16 h-1 bg-${color}-600 mx-auto mt-4 rounded-full`}></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+             {[
+               { icon: GraduationCap, title: "For Students", text: "Balance early classes with study time and fitness. Stop sleeping through alarms." },
+               { icon: Briefcase, title: "For Workers", text: "Maximize the time before the 9-to-5 grind. Squeeze in side-hustles or workouts." },
+               { icon: Trophy, title: "For Self-Improvement", text: "Optimize every minute for bio-hacking, meditation, and deep work." }
+             ].map((item, i) => (
+               <div key={i} className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
+                  <div className={`w-12 h-12 rounded-lg bg-${color}-50 dark:bg-slate-800 flex items-center justify-center mb-6`}>
+                    <item.icon className={`w-6 h-6 ${textAccent}`}/>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-white">{item.title}</h3>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{item.text}</p>
+               </div>
+             ))}
            </div>
-           <p className="text-lg text-slate-600 dark:text-slate-300 text-center max-w-3xl mx-auto leading-relaxed">
-             MorningForge is an intelligent morning routine generator that builds <strong>personalized, realistic routines</strong> based on your schedule, age, goals, and lifestyle.
-             It adapts to students, workers, athletes, and anyone who wants structure. Unlike generic "5 AM Club" advice, we calculate the best plan for <em>your</em> specific wake-up time and constraints.
-           </p>
         </div>
       </div>
 
@@ -99,31 +110,8 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
         </div>
       </div>
 
-      {/* 4. WHO IS THIS FOR? */}
-      <div className="py-20 bg-slate-900 dark:bg-slate-950 text-white transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-           <div className="text-center mb-16">
-             <h2 className="text-3xl font-bold">Who is this for?</h2>
-           </div>
-           
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-             {[
-               { icon: GraduationCap, title: "Students", text: "Balance early classes with study time and fitness. Stop sleeping through alarms." },
-               { icon: Briefcase, title: "Workers", text: "Maximize the time before the 9-to-5 grind. Squeeze in side-hustles or workouts." },
-               { icon: Trophy, title: "High Performers", text: "Optimize every minute for bio-hacking, meditation, and deep work." }
-             ].map((item, i) => (
-               <div key={i} className="bg-slate-800 dark:bg-slate-900 p-8 rounded-2xl border border-slate-700">
-                  <item.icon className={`w-10 h-10 ${textAccent} mb-4`}/>
-                  <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                  <p className="text-slate-300">{item.text}</p>
-               </div>
-             ))}
-           </div>
-        </div>
-      </div>
-
-      {/* 5. FEATURES OVERVIEW */}
-      <div className="py-20 bg-white dark:bg-slate-900 transition-colors">
+      {/* 4. FEATURES OVERVIEW */}
+      <div className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
              <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Everything You Need</h2>
@@ -148,7 +136,7 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => {
           
           <div className="mt-16 text-center">
              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Ready to forge your morning?</h3>
-             <Button size="lg" onClick={onStart}>Start Now - It's Free</Button>
+             <Button size="lg" onClick={onStart}>Start Routine Setup</Button>
           </div>
         </div>
       </div>

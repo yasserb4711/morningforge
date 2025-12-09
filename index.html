@@ -12,7 +12,14 @@
           extend: {
             animation: {
               'quote-popup': 'slideInFade 4s ease-in-out forwards',
+              'fade-in': 'fadeIn 0.5s ease-out forwards',
             },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
+            }
           },
         },
       }
@@ -50,6 +57,7 @@
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.1/client",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
     "react/": "https://aistudiocdn.com/react@^19.2.1/",
     "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
@@ -60,5 +68,6 @@
 </head>
   <body class="bg-slate-50 text-slate-900 antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
     <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>

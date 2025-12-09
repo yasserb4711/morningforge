@@ -184,7 +184,7 @@ function AppContent() {
       {/* Motivational Popup (Loads on mount if enabled) */}
       <MotivationalPopup style={formData?.routineStyle} />
 
-      {/* Header for Settings Access */}
+      {/* Header for Settings Access - Always visible except in some flows if needed, but keeping it simple */}
       <div className="fixed top-4 right-4 z-50">
         <button 
           onClick={openSettings}

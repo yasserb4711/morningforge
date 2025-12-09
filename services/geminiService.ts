@@ -71,6 +71,8 @@ export const generateRoutine = async (data: UserFormData): Promise<RoutineRespon
         }
       ]
     }
+
+    IMPORTANT: Return ONLY valid JSON. Do not include Markdown code blocks (no \`\`\`json). Do not add any text before or after the JSON object.
   `;
 
   try {
@@ -86,7 +88,16 @@ export const generateRoutine = async (data: UserFormData): Promise<RoutineRespon
     const text = response.text;
     if (!text) throw new Error("No response from AI");
     
-    return JSON.parse(text) as RoutineResponse;
+    // Clean potential markdown code blocks or extra whitespace
+    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    try {
+      return JSON.parse(cleanedText) as RoutineResponse;
+    } catch (parseError) {
+      console.error("JSON Parse Error. Raw text from AI:", text);
+      throw new Error("Failed to parse routine configuration. The AI response was not valid JSON.");
+    }
+    
   } catch (error) {
     console.error("Error generating routine:", error);
     throw error;

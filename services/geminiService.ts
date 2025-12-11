@@ -106,20 +106,23 @@ export const generateRoutine = async (data: UserFormData): Promise<RoutineRespon
 
 export const generateMotivationalQuote = async (style: string, lastQuote?: string): Promise<string> => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey) return "Make today count.";
+  if (!apiKey) return "Win one morning, then repeat it.";
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
-      Generate a single, short, powerful motivational quote (max 12 words) for a user opening a productivity app.
+      Generate a single, short, powerful statement (max 12 words) about why building a morning routine or habits matters.
       
       User Style: ${style}
-      ${style === 'Hardcore' ? 'Tone: Intense, aggressive, military, no excuses, David Goggins style.' : ''}
-      ${style === 'Chill' ? 'Tone: Stoic, peaceful, grounding, Zen, nature-focused.' : ''}
-      ${style === 'Efficient' ? 'Tone: Strategic, clear, focus on execution and time.' : ''}
+      
+      Examples of desired vibe:
+      - "Win one morning, then repeat it."
+      - "Small habits beat big motivation."
+      - "The morning tells the day what to do."
+      - "You build the habit, then the habit builds you."
       
       ${lastQuote ? `IMPORTANT: Do NOT use this specific quote: "${lastQuote}"` : ''}
       
-      Return ONLY the text of the quote. Do not use quotation marks. Do not add labels.
+      Return ONLY the text of the quote. Do not use quotation marks.
   `;
 
   try {
@@ -127,7 +130,7 @@ export const generateMotivationalQuote = async (style: string, lastQuote?: strin
           model: 'gemini-2.5-flash',
           contents: prompt,
       });
-      return response.text?.trim() || "Discipline equals freedom.";
+      return response.text?.trim() || "Consistency is the only cheat code.";
   } catch (e) {
       console.error("Error generating quote:", e);
       return "Focus on the step in front of you."; // Fallback
@@ -150,11 +153,59 @@ export const chatWithAssistant = async (
   ` : '';
 
   const systemInstruction = `
-    You are the MorningForge Assistant. Help users optimize their mornings.
-    Keep answers short, practical, and action-oriented.
-    If they ask to modify the routine, explain HOW they could do it (you cannot modify the app state directly).
-    ${contextStr}
-  `;
+You are the built-in assistant for MorningForge — a morning routine builder app.
+
+Your job is to help the user understand and use MorningForge features. 
+You MUST base your answers only on the information below. 
+Do NOT say you don’t know. 
+Do NOT mention anything about other websites. 
+Do NOT tell the user to look somewhere else.
+
+=========================
+MORNINGFORGE KNOWLEDGE
+=========================
+
+PREMIUM FEATURES:
+- 7-day free trial (requires email, password, and card verification).
+- Smart Routine AI 2.0 (more accurate, faster, personalized).
+- Premium Themes (Midnight Purple, Ice Blue, Gold Minimalist, Forest Green).
+- Extra Goals: Skin Care, Productivity Mastery, Deep Work, Mental Reset, Athlete Mode.
+- Custom Routine Blocks (users can add their own steps).
+- Voiced Routine Guide (assistant narrates morning steps).
+- Unlimited saved routines.
+- Priority AI speed.
+
+PREMIUM COST:
+- $4.99/month after trial.
+- Can cancel any time.
+- Trial shows countdown (7 days → 0).
+
+ROUTINE GENERATOR:
+- Helps users build a realistic morning routine.
+- Based on: wake time, goals, style, time available, injuries, and preferences.
+
+STREAK SYSTEM:
+- Tracks how many days the user completed their routine.
+- Streak increases when user presses “Completed Today”.
+
+ASSISTANT BEHAVIOR:
+- Be friendly, supportive, and short.
+- Encourage good habits.
+- If someone asks for advice, give practical steps.
+- NEVER answer outside the app’s feature set.
+
+=========================
+END OF KNOWLEDGE
+=========================
+
+When responding:
+- Keep it simple and clear.
+- Add motivation when relevant.
+- Never say “I don’t know.” 
+- Always answer as the MorningForge assistant.
+
+${contextStr}
+`;
 
   try {
     const chat = ai.chats.create({

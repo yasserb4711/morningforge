@@ -31,7 +31,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSetRoutine, 
   const { user } = useAuth();
   const { settings } = useSettings();
   const [streak, setStreak] = useState(getStreak(user?.id || ''));
-  const [quote, setQuote] = useState("Small wins stack into big results.");
+  const [quote, setQuote] = useState("Win one morning, then repeat it.");
   const [isQuoteLoading, setIsQuoteLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   
@@ -82,11 +82,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSetRoutine, 
 
   // Streak Progress
   const streakPercent = Math.min(100, Math.max(10, (streak.currentStreak / 14) * 100));
-  let streakMessage = "Let's start your streak.";
-  if (streak.currentStreak > 0) streakMessage = "You're starting strong.";
-  if (streak.currentStreak >= 3) streakMessage = "Nice consistency.";
-  if (streak.currentStreak >= 7) streakMessage = "You're on a roll.";
-  if (streak.currentStreak >= 14) streakMessage = "Unstoppable.";
+  
+  // Updated Streak Messages
+  let streakMessage = "We’ll track how often you follow your morning routine.";
+  if (streak.currentStreak > 0) streakMessage = "Nice start. Keep showing up.";
+  if (streak.currentStreak >= 3) streakMessage = "You’re building a consistent morning.";
+  if (streak.currentStreak >= 7) streakMessage = "Your routine is becoming a habit.";
+
+  // Motion Classes
+  const groupHoverScale = !settings.reducedMotion ? "group-hover:scale-110" : "";
+  const cardHoverShadow = !settings.reducedMotion ? "hover:shadow-md" : "";
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 px-4 sm:px-6 lg:px-8 pb-20 transition-colors">
@@ -96,14 +101,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSetRoutine, 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome back, {user?.name}.</h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-2">Let's attack the day.</p>
+            <p className="text-slate-600 dark:text-slate-400 mt-2">3 simple steps to use MorningForge:</p>
           </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
           
           {/* Main Card: Today's Routine */}
-          <div className="md:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
+          <div className={`md:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col justify-between ${cardHoverShadow} transition-shadow duration-300`}>
              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center">
                    <Play className={`w-5 h-5 text-${color}-600 mr-2`} /> Today's Routine
@@ -181,15 +186,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSetRoutine, 
                   </div>
                </div>
              ) : (
-               <div className="text-center py-12">
+               <div className="text-center py-6">
                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
                     <List className="w-8 h-8"/>
                  </div>
-                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">No active routine</h3>
-                 <p className="text-slate-500 text-sm mb-6 max-w-xs mx-auto">Generate a new routine or pick one from your library to get started.</p>
+                 
+                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">No active morning routine yet</h3>
+                 <p className="text-slate-500 text-sm mb-6 max-w-xs mx-auto">We’ll help you build a morning plan based on your time and goals.</p>
+                 
+                 {/* How it works steps */}
+                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 mb-6 max-w-sm mx-auto text-left">
+                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">How this works</h4>
+                    <div className="space-y-2">
+                       <div className="flex gap-3 text-xs text-slate-600 dark:text-slate-400 items-start">
+                          <span className="font-bold text-slate-400 shrink-0">1</span>
+                          <span>Generate a routine with the button below.</span>
+                       </div>
+                       <div className="flex gap-3 text-xs text-slate-600 dark:text-slate-400 items-start">
+                          <span className="font-bold text-slate-400 shrink-0">2</span>
+                          <span>Follow it in the morning.</span>
+                       </div>
+                       <div className="flex gap-3 text-xs text-slate-600 dark:text-slate-400 items-start">
+                          <span className="font-bold text-slate-400 shrink-0">3</span>
+                          <span>Come back and mark “Completed today” to grow your streak.</span>
+                       </div>
+                    </div>
+                 </div>
+
                  <div className="flex justify-center gap-3">
-                    <Button size="sm" onClick={() => onNavigate('setup')}>Generate New</Button>
-                    <Button size="sm" variant="outline" onClick={() => onNavigate('saved')}>Pick Saved</Button>
+                    <Button size="sm" onClick={() => onNavigate('setup')}>Generate routine</Button>
+                    <Button size="sm" variant="outline" onClick={() => onNavigate('saved')}>Pick from saved</Button>
                  </div>
                </div>
              )}
@@ -199,7 +225,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSetRoutine, 
           <div className="space-y-6">
             
             {/* Streak Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 text-center hover:shadow-md transition-shadow">
+            <div className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 text-center ${cardHoverShadow} transition-shadow`}>
                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Current Streak</h3>
                
                <div className="flex items-center justify-center mb-2">
@@ -228,30 +254,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSetRoutine, 
                     onClick={() => onNavigate('setup')} 
                     className="w-full p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 hover:border-indigo-200 dark:hover:border-indigo-500 hover:shadow-sm transition-all flex items-center text-sm font-medium text-slate-700 dark:text-slate-200 group"
                   >
-                     <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                     <div className={`w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mr-3 ${groupHoverScale} transition-transform`}>
                         <Plus className="w-5 h-5"/>
                      </div>
-                     Generate New
+                     Generate routine
                   </button>
 
                   <button 
                     onClick={() => onNavigate('saved')} 
                     className="w-full p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 hover:border-purple-200 dark:hover:border-purple-500 hover:shadow-sm transition-all flex items-center text-sm font-medium text-slate-700 dark:text-slate-200 group"
                   >
-                     <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                     <div className={`w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center mr-3 ${groupHoverScale} transition-transform`}>
                         <CheckCircle2 className="w-5 h-5"/>
                      </div>
-                     Saved Routines
+                     Open saved routines
                   </button>
 
                    <button 
                     onClick={() => onNavigate('settings')} 
                     className="w-full p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500 hover:shadow-sm transition-all flex items-center text-sm font-medium text-slate-700 dark:text-slate-200 group"
                   >
-                     <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                     <div className={`w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 flex items-center justify-center mr-3 ${groupHoverScale} transition-transform`}>
                         <Settings className="w-5 h-5"/>
                      </div>
-                     Settings
+                     Open settings
                   </button>
                </div>
             </div>
@@ -265,7 +291,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSetRoutine, 
            <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
            
            <div className="relative z-10">
-              <p className="text-white/80 text-xs font-bold uppercase tracking-widest mb-3">Daily Focus</p>
+              <p className="text-white/80 text-xs font-bold uppercase tracking-widest mb-3">Why this matters</p>
               <h3 className="text-xl md:text-2xl font-bold text-white leading-relaxed max-w-3xl mx-auto">
                  "{quote}"
               </h3>

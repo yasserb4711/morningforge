@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getSavedRoutines, deleteRoutine, updateRoutine } from '../services/storageService';
 import { SavedRoutine } from '../types';
 import { Button } from './ui/Button';
-import { Trash2, Edit2, PlayCircle, Clock, Calendar } from 'lucide-react';
+import { Trash2, Edit2, PlayCircle, Clock, Calendar, Crown } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 
 interface SavedRoutinesProps {
@@ -56,6 +56,17 @@ export const SavedRoutines: React.FC<SavedRoutinesProps> = ({ onLoadRoutine, onN
     onLoadRoutine(r);
     onNavigate('result');
   };
+  
+  const handleCreateNew = () => {
+      // PRO Gating
+      if (!user?.isPro && routines.length >= 3) {
+          if (confirm("Free Plan limited to 3 saved routines. Upgrade to Pro for unlimited saves?")) {
+              onNavigate('premium');
+          }
+          return;
+      }
+      onNavigate('setup');
+  };
 
   if (routines.length === 0) {
     return (
@@ -63,7 +74,7 @@ export const SavedRoutines: React.FC<SavedRoutinesProps> = ({ onLoadRoutine, onN
         <div className="text-center max-w-md">
            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">No Saved Routines</h2>
            <p className="text-slate-500 mb-8">You haven't saved any routines yet. Generate one to get started.</p>
-           <Button onClick={() => onNavigate('setup')}>Generate Routine</Button>
+           <Button onClick={handleCreateNew}>Generate Routine</Button>
         </div>
       </div>
     );
@@ -74,7 +85,14 @@ export const SavedRoutines: React.FC<SavedRoutinesProps> = ({ onLoadRoutine, onN
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-24 px-4 sm:px-6 lg:px-8 pb-12 transition-colors">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">Your Routine Library</h1>
+        <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Your Routine Library</h1>
+            {!user?.isPro && (
+                <div className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
+                    {routines.length} / 3 Free Slots
+                </div>
+            )}
+        </div>
         
         <div className="grid gap-6">
            {routines.map(routine => (
@@ -136,10 +154,16 @@ export const SavedRoutines: React.FC<SavedRoutinesProps> = ({ onLoadRoutine, onN
         </div>
 
         <div className="mt-8 flex justify-center">
-            <Button variant="outline" onClick={() => onNavigate('setup')}>
+            <Button variant="outline" onClick={handleCreateNew}>
                <span className="text-2xl mr-2 leading-none">+</span> Create New Routine
             </Button>
         </div>
+        
+        {!user?.isPro && routines.length >= 3 && (
+            <p className="text-center text-xs text-amber-600 mt-4 cursor-pointer hover:underline" onClick={() => onNavigate('premium')}>
+                Limit reached. Upgrade to Pro to save more.
+            </p>
+        )}
       </div>
     </div>
   );

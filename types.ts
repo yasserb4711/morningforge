@@ -5,7 +5,10 @@ export enum GoalType {
   TESTOSTERONE = 'Boost testosterone naturally',
   DISCIPLINE = 'Build discipline & focus',
   MONEY = 'Make money / work on business',
-  MENTAL = 'Improve mental health & calmness'
+  MENTAL = 'Improve mental health & calmness',
+  SKINCARE = 'Skin Care Routine',
+  PRODUCTIVITY = 'Productivity Boost',
+  MINDFULNESS = 'Mindfulness & Meditation'
 }
 
 export interface UserFormData {
@@ -74,8 +77,11 @@ export interface RoutineResponse {
 export interface User {
   id: string;
   name: string;
-  email?: string;
+  email: string;
+  passwordHash: string; // Simulated security
   createdAt: string;
+  isPro: boolean;
+  trialStartDate?: string | null;
 }
 
 export interface SavedRoutine extends RoutineResponse {
@@ -95,9 +101,12 @@ export interface ChatMessage {
   text: string;
 }
 
+export type PremiumTheme = 'classic' | 'soft_dark' | 'sunrise_gold' | 'neon_focus' | 'minimal_white' | 'midnight_deep';
+
 export interface AppSettings {
   theme: 'light' | 'dark' | 'auto';
   accentColor: 'indigo' | 'purple' | 'teal' | 'rose' | 'amber';
+  premiumTheme: PremiumTheme; // New Field
   fontSize: 'sm' | 'md' | 'lg' | 'xl';
   highContrast: boolean;
   reducedMotion: boolean;
@@ -117,6 +126,7 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'light',
   accentColor: 'indigo',
+  premiumTheme: 'classic',
   fontSize: 'md',
   highContrast: false,
   reducedMotion: false,

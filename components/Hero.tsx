@@ -1,15 +1,13 @@
-
 import React from 'react';
 import { Button } from './ui/Button';
-import { ArrowRight, CheckCircle2, Clock, Zap, Target, BookOpen, Users, Play } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock, Zap, Target, BookOpen, Users } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 
 interface HeroProps {
   onStart: () => void;
-  onDemo: () => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onStart, onDemo }) => {
+export const Hero: React.FC<HeroProps> = ({ onStart }) => {
   const { settings } = useSettings();
   const color = settings.accentColor;
 
@@ -36,9 +34,6 @@ export const Hero: React.FC<HeroProps> = ({ onStart, onDemo }) => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="lg" onClick={onStart} className="shadow-xl shadow-indigo-500/20">
               Start Routine Setup <ArrowRight className="ml-2 w-5 h-5"/>
-            </Button>
-            <Button size="lg" variant="outline" onClick={onDemo}>
-              <Play className="mr-2 w-4 h-4"/> View Demo Routine
             </Button>
           </div>
         </div>

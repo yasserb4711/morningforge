@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Sparkles, ChevronDown } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
@@ -9,6 +8,31 @@ import { useAuth } from '../contexts/AuthContext';
 interface AIAssistantProps {
   currentRoutine: RoutineResponse | null;
 }
+
+const TypewriterText: React.FC<{ text: string }> = ({ text }) => {
+  const { settings } = useSettings();
+  const [displayedText, setDisplayedText] = useState('');
+  
+  // If reduced motion, just show text immediately
+  if (settings.reducedMotion) {
+    return <>{text}</>;
+  }
+
+  useEffect(() => {
+    let index = 0;
+    const intervalId = setInterval(() => {
+      setDisplayedText(text.slice(0, index + 1));
+      index++;
+      if (index >= text.length) {
+        clearInterval(intervalId);
+      }
+    }, 15); // Speed of typing
+
+    return () => clearInterval(intervalId);
+  }, [text]);
+
+  return <>{displayedText}</>;
+};
 
 export const AIAssistant: React.FC<AIAssistantProps> = ({ currentRoutine }) => {
   const { settings } = useSettings();
@@ -27,7 +51,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ currentRoutine }) => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isOpen]);
+  }, [messages, isOpen, isTyping]);
 
   const handleSend = async (text: string = input) => {
     if (!text.trim()) return;
@@ -57,7 +81,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ currentRoutine }) => {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-${color}-500 to-purple-600 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center z-[50] text-white`}
+        className={`fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-${color}-500 to-purple-600 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-[50] text-white ${!settings.reducedMotion ? 'hover:scale-105' : ''}`}
       >
         {isOpen ? <ChevronDown className="w-8 h-8"/> : <MessageSquare className="w-7 h-7"/>}
       </button>
@@ -104,19 +128,23 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ currentRoutine }) => {
                     ? `bg-${color}-600 text-white rounded-tr-sm` 
                     : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-tl-sm shadow-sm'
                 }`}>
-                   {m.text}
+                   {m.role === 'model' ? <TypewriterText text={m.text} /> : m.text}
                 </div>
              </div>
            ))}
            
            {isTyping && (
              <div className="flex justify-start">
-               <div className="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-tl-sm">
-                 <div className="flex space-x-1">
-                   <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                   <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                   <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                 </div>
+               <div className="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-tl-sm text-slate-500 text-xs italic">
+                 {!settings.reducedMotion ? (
+                   <div className="flex space-x-1">
+                     <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                     <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                     <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                   </div>
+                 ) : (
+                    <span>Assistant is typing...</span>
+                 )}
                </div>
              </div>
            )}

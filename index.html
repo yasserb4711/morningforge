@@ -13,10 +13,15 @@
             animation: {
               'quote-popup': 'slideInFade 4s ease-in-out forwards',
               'fade-in': 'fadeIn 0.5s ease-out forwards',
+              'page-enter': 'pageEnter 0.3s ease-out forwards',
             },
             keyframes: {
               fadeIn: {
                 '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              pageEnter: {
+                '0%': { opacity: '0', transform: 'translateY(8px)' },
                 '100%': { opacity: '1', transform: 'translateY(0)' },
               }
             }
@@ -28,12 +33,6 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
-      }
-      /* Accessibility: Reduced Motion */
-      body.reduced-motion * {
-        animation: none !important;
-        transition: none !important;
-        scroll-behavior: auto !important;
       }
       /* Accessibility: High Contrast */
       body.high-contrast {
@@ -52,6 +51,90 @@
         90% { opacity: 1; transform: translateY(0); }
         100% { opacity: 0; transform: translateY(-20px); }
       }
+
+      /* --- THEME OVERRIDES --- */
+      
+      /* 1. Sunrise Gold (Warm, Amber) */
+      html.theme-sunrise_gold body {
+        background-color: #fffbeb !important; /* amber-50 */
+      }
+      html.theme-sunrise_gold .bg-white {
+        background-color: #ffffff !important;
+        border-color: #fcd34d !important; /* amber-300 */
+      }
+      html.theme-sunrise_gold .bg-slate-50 {
+        background-color: #fffbeb !important;
+      }
+      html.theme-sunrise_gold .text-slate-900 {
+        color: #451a03 !important; /* amber-950 */
+      }
+
+      /* 2. Neon Focus (Deep Purple/Cyan) */
+      html.theme-neon_focus body {
+        background-color: #0f0720 !important;
+        color: #e9d5ff !important;
+      }
+      html.theme-neon_focus .dark\:bg-slate-900,
+      html.theme-neon_focus .bg-white {
+        background-color: #1a0b2e !important;
+        border-color: #a855f7 !important; /* purple-500 */
+        box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+      }
+      html.theme-neon_focus .dark\:text-white {
+        color: #f3e8ff !important;
+        text-shadow: 0 0 5px rgba(243, 232, 255, 0.5);
+      }
+      html.theme-neon_focus .dark\:bg-slate-950 {
+        background-color: #0f0720 !important;
+      }
+
+      /* 3. Minimal White (Stark, clean) */
+      html.theme-minimal_white body {
+        background-color: #ffffff !important;
+      }
+      html.theme-minimal_white .bg-slate-50 {
+        background-color: #f9fafb !important;
+      }
+      html.theme-minimal_white .bg-white {
+        border: 1px solid #e5e7eb !important;
+        box-shadow: none !important;
+        border-radius: 4px !important;
+      }
+      html.theme-minimal_white .rounded-2xl, 
+      html.theme-minimal_white .rounded-xl,
+      html.theme-minimal_white .rounded-lg {
+        border-radius: 4px !important;
+      }
+
+      /* 4. Midnight Deep (Pure Black OLED) */
+      html.theme-midnight_deep body {
+        background-color: #000000 !important;
+      }
+      html.theme-midnight_deep .dark\:bg-slate-900,
+      html.theme-midnight_deep .bg-white {
+        background-color: #000000 !important;
+        border-color: #333333 !important;
+      }
+      html.theme-midnight_deep .dark\:bg-slate-950 {
+        background-color: #000000 !important;
+      }
+      html.theme-midnight_deep .dark\:bg-slate-800 {
+        background-color: #111111 !important;
+        border-color: #333333 !important;
+      }
+
+      /* 5. Soft Dark (Softer, blue-grey) */
+      html.theme-soft_dark body {
+        background-color: #1e293b !important; /* slate-800 */
+      }
+      html.theme-soft_dark .dark\:bg-slate-950 {
+         background-color: #1e293b !important;
+      }
+      html.theme-soft_dark .dark\:bg-slate-900 {
+        background-color: #334155 !important; /* slate-700 */
+        border-color: #475569 !important;
+      }
+
     </style>
   <script type="importmap">
 {

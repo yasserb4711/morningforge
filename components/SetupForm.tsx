@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { UserFormData, GoalType } from '../types';
 import { Button } from './ui/Button';
-import { ArrowLeft, ArrowRight, Dumbbell, Briefcase, Brain, Zap, DollarSign, Heart, AlertCircle } from 'lucide-react';
+import { 
+  ArrowLeft, ArrowRight, Dumbbell, Briefcase, Brain, Zap, DollarSign, Heart, 
+  AlertCircle, Crown, Lock, Sparkles, TrendingUp, Leaf
+} from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SetupFormProps {
   onSubmit: (data: UserFormData) => void;
   isLoading: boolean;
+  onNavigate: (view: string) => void;
 }
 
 const initialData: UserFormData = {
@@ -24,19 +29,34 @@ const initialData: UserFormData = {
   routineStyle: 'Efficient'
 };
 
-export const SetupForm: React.FC<SetupFormProps> = ({ onSubmit, isLoading }) => {
+const PREMIUM_GOALS = [GoalType.SKINCARE, GoalType.PRODUCTIVITY, GoalType.MINDFULNESS];
+
+export const SetupForm: React.FC<SetupFormProps> = ({ onSubmit, isLoading, onNavigate }) => {
   const { settings } = useSettings();
+  const { user } = useAuth();
   const color = settings.accentColor;
   
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<UserFormData>(initialData);
   const [goalWarning, setGoalWarning] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const updateField = (field: keyof UserFormData, value: any) => {
+    // Pro Gating for Style
+    if (field === 'routineStyle' && value === 'Hardcore' && !user?.isPro) {
+        setShowUpgradeModal(true);
+        return;
+    }
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const toggleGoal = (goal: GoalType) => {
+    // Check if premium goal
+    if (PREMIUM_GOALS.includes(goal) && !user?.isPro) {
+        setShowUpgradeModal(true);
+        return;
+    }
+
     setFormData(prev => {
       // If already selected, deselect
       if (prev.goals.includes(goal)) {
@@ -58,6 +78,7 @@ export const SetupForm: React.FC<SetupFormProps> = ({ onSubmit, isLoading }) => 
   const prevStep = () => setStep(prev => prev - 1);
 
   const isGoalSelected = (goal: GoalType) => formData.goals.includes(goal);
+  const isGoalLocked = (goal: GoalType) => PREMIUM_GOALS.includes(goal) && !user?.isPro;
 
   // Dynamic classes based on accent color
   const activeBorder = `focus:ring-${color}-500 focus:border-${color}-500`;
@@ -66,14 +87,18 @@ export const SetupForm: React.FC<SetupFormProps> = ({ onSubmit, isLoading }) => 
   const activeBorderColor = `border-${color}-500`;
   const activeLightBg = `bg-${color}-50`;
   
+  // Motion classes
+  const cardMotion = !settings.reducedMotion ? "hover:scale-[1.02] active:scale-[0.98] transition-all duration-200" : "";
+  
   // Card styles for Goals
-  const cardBase = "relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer h-32 hover:scale-[1.02] active:scale-[0.98]";
+  const cardBase = `relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer h-32 ${cardMotion}`;
   const cardSelected = `${activeBg} border-${color}-600 text-white shadow-lg shadow-${color}-200 dark:shadow-none`;
   const cardUnselected = "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md";
+  const cardLocked = "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-600 grayscale opacity-80";
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 transition-colors">
-      <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+      <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden relative">
         
         {/* Progress Bar */}
         <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5">
@@ -238,22 +263,38 @@ export const SetupForm: React.FC<SetupFormProps> = ({ onSubmit, isLoading }) => 
                   { id: GoalType.MONEY, icon: DollarSign, label: 'Money & Biz' },
                   { id: GoalType.DISCIPLINE, icon: Briefcase, label: 'Discipline' },
                   { id: GoalType.MENTAL, icon: Brain, label: 'Mental Clarity' },
-                ].map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => toggleGoal(item.id)}
-                    className={`${cardBase} ${isGoalSelected(item.id) ? cardSelected : cardUnselected} ${(!isGoalSelected(item.id) && formData.goals.length >= 3) ? 'opacity-50 grayscale cursor-not-allowed hover:scale-100' : ''}`}
-                  >
-                    <item.icon className={`w-8 h-8 mb-3 ${isGoalSelected(item.id) ? 'text-white' : activeText}`} strokeWidth={1.5} />
-                    <span className="text-sm font-semibold text-center leading-tight">{item.label}</span>
-                    {isGoalSelected(item.id) && (
-                        <div className="absolute top-2 right-2 w-2 h-2 bg-white rounded-full shadow-sm animate-pulse"/>
-                    )}
-                  </div>
-                ))}
+                  { id: GoalType.SKINCARE, icon: Sparkles, label: 'Skin Care', premium: true },
+                  { id: GoalType.PRODUCTIVITY, icon: TrendingUp, label: 'Productivity', premium: true },
+                  { id: GoalType.MINDFULNESS, icon: Leaf, label: 'Meditation', premium: true },
+                ].map((item) => {
+                  const locked = isGoalLocked(item.id);
+                  const selected = isGoalSelected(item.id);
+                  
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => toggleGoal(item.id)}
+                      className={`${cardBase} ${selected ? cardSelected : (locked ? cardLocked : cardUnselected)} ${(!selected && !locked && formData.goals.length >= 3) ? 'opacity-50 grayscale cursor-not-allowed hover:scale-100' : ''}`}
+                    >
+                      {/* Premium Lock Icon */}
+                      {locked && (
+                         <div className="absolute top-2 right-2">
+                             <Lock className="w-4 h-4 text-amber-500"/>
+                         </div>
+                      )}
+
+                      <item.icon className={`w-8 h-8 mb-3 ${selected ? 'text-white' : (locked ? 'text-slate-400' : activeText)}`} strokeWidth={1.5} />
+                      <span className="text-sm font-semibold text-center leading-tight">{item.label}</span>
+                      
+                      {selected && (
+                          <div className="absolute top-2 right-2 w-2 h-2 bg-white rounded-full shadow-sm animate-pulse"/>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Conditional Inputs based on Goals with Fade In */}
+              {/* Conditional Inputs based on Goals */}
               {(isGoalSelected(GoalType.MUSCLE) || isGoalSelected(GoalType.MONEY)) && (
                 <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800 animate-fade-in">
                     
@@ -356,19 +397,25 @@ export const SetupForm: React.FC<SetupFormProps> = ({ onSubmit, isLoading }) => 
                <div>
                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Routine Style</label>
                  <div className="flex gap-2">
-                    {['Chill', 'Efficient', 'Hardcore'].map((style) => (
-                      <button
-                        key={style}
-                        onClick={() => updateField('routineStyle', style)}
-                        className={`flex-1 py-3 px-2 rounded-lg border text-sm transition-all duration-200 ${
-                          formData.routineStyle === style 
-                            ? 'bg-slate-800 dark:bg-slate-700 border-slate-800 dark:border-slate-600 text-white shadow-md' 
-                            : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        {style}
-                      </button>
-                    ))}
+                    {['Chill', 'Efficient', 'Hardcore'].map((style) => {
+                      // Lock 'Hardcore' for non-pro
+                      const isLocked = style === 'Hardcore' && !user?.isPro;
+                      
+                      return (
+                        <button
+                          key={style}
+                          onClick={() => updateField('routineStyle', style)}
+                          className={`relative flex-1 py-3 px-2 rounded-lg border text-sm transition-all duration-200 ${
+                            formData.routineStyle === style 
+                              ? 'bg-slate-800 dark:bg-slate-700 border-slate-800 dark:border-slate-600 text-white shadow-md' 
+                              : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                          } ${isLocked ? 'opacity-80' : ''}`}
+                        >
+                          {style}
+                          {isLocked && <Lock className="absolute top-1 right-1 w-3 h-3 text-amber-500"/>}
+                        </button>
+                      );
+                    })}
                   </div>
                </div>
 
@@ -406,6 +453,34 @@ export const SetupForm: React.FC<SetupFormProps> = ({ onSubmit, isLoading }) => 
             </Button>
           )}
         </div>
+        
+        {/* Upgrade Modal */}
+        {showUpgradeModal && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl p-6 text-center shadow-2xl border border-amber-200 dark:border-amber-900">
+                    <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Crown className="w-6 h-6 fill-amber-500"/>
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">This goal requires Pro</h3>
+                    <p className="text-slate-500 dark:text-slate-400 mb-6">Unlock advanced goals like Skin Care, Productivity, and Mindfulness with MorningForge Pro.</p>
+                    <div className="space-y-3">
+                        <Button 
+                            fullWidth 
+                            onClick={() => { setShowUpgradeModal(false); onNavigate('premium'); }}
+                            className="bg-amber-500 hover:bg-amber-600 text-white border-none"
+                        >
+                            Upgrade to Pro
+                        </Button>
+                        <button 
+                            onClick={() => setShowUpgradeModal(false)}
+                            className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
 
       </div>
     </div>

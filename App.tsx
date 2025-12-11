@@ -6,52 +6,37 @@ import { RoutineDisplay } from './components/RoutineDisplay';
 import { SettingsPage } from './components/SettingsPage';
 import { Dashboard } from './components/Dashboard';
 import { SavedRoutines } from './components/SavedRoutines';
+import { PremiumPage } from './components/PremiumPage';
 import { AIAssistant } from './components/AIAssistant';
 import { generateRoutine } from './services/geminiService';
 import { UserFormData, RoutineResponse, SavedRoutine } from './types';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MotivationalPopup } from './components/MotivationalPopup';
-
-const DEMO_ROUTINE: RoutineResponse = {
-  title: "The CEO Morning Demo",
-  summary: {
-    wakeTime: "06:00",
-    sleepTarget: "10:00 PM - 06:00 AM",
-    duration: "45 Minutes",
-    focus: "Mental Clarity & Strategy"
-  },
-  blocks: [
-    {
-      timeRange: "06:00 - 06:05",
-      title: "Hydrate & Sunlight",
-      activities: ["Drink 500ml water with salt", "Get direct sunlight/bright light"],
-      explanation: "Kickstarts cortisol to wake you up.",
-      icon: "wake"
-    },
-    {
-      timeRange: "06:05 - 06:25",
-      title: "Deep Work / Strategy",
-      activities: ["Review top 3 goals", "Journal or plan day"],
-      explanation: "Brain is freshest. Do not check phone.",
-      icon: "mind"
-    },
-    {
-      timeRange: "06:25 - 06:45",
-      title: "Movement",
-      activities: ["Kettlebell swings", "Stretching"],
-      explanation: "Raises body temp and energy.",
-      icon: "move"
-    }
-  ]
-};
+import { PageTransition } from './components/ui/PageTransition';
 
 function AppContent() {
   const { settings } = useSettings();
   const { isAuthenticated } = useAuth();
   
-  // Views: 'home' | 'dashboard' | 'setup' | 'result' | 'settings' | 'saved'
-  const [view, setView] = useState<string>('home');
+  // Navigation History State
+  const [history, setHistory] = useState<string[]>(['home']);
+  const view = history[history.length - 1];
+
+  const handleNavigate = (newView: string) => {
+    setHistory(prev => {
+      // Prevent pushing duplicate views consecutively
+      if (prev[prev.length - 1] === newView) return prev;
+      return [...prev, newView];
+    });
+  };
+
+  const handleBack = () => {
+    setHistory(prev => {
+      if (prev.length <= 1) return prev;
+      return prev.slice(0, -1);
+    });
+  };
   
   // Profile State
   const [formData, setFormData] = useState<UserFormData | null>(() => {
@@ -69,7 +54,8 @@ function AppContent() {
   // Auto-redirect if logged in on load
   useEffect(() => {
     if (isAuthenticated && view === 'home') {
-      setView('dashboard');
+      // Replace history with dashboard
+      setHistory(['dashboard']);
     }
   }, [isAuthenticated]);
 
@@ -79,41 +65,59 @@ function AppContent() {
     }
   }, [formData]);
 
-  // Apply Global Settings
+  // Apply Global Settings & Premium Themes
   useEffect(() => {
     const root = document.documentElement;
-    const applyTheme = () => {
-        const isDark = settings.theme === 'dark' || 
-            (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        isDark ? root.classList.add('dark') : root.classList.remove('dark');
-    };
-    applyTheme();
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-       if (settings.theme === 'auto') applyTheme();
-    });
     
-    // Fonts & Accessibility
+    // 1. Determine Dark Mode State
+    let isDark = false;
+    
+    // Check "Classic" mode logic first
+    if (settings.premiumTheme === 'classic') {
+       if (settings.theme === 'dark') isDark = true;
+       if (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) isDark = true;
+    } else {
+       // Forced Modes for Themes
+       if (['soft_dark', 'neon_focus', 'midnight_deep'].includes(settings.premiumTheme)) {
+           isDark = true;
+       }
+       // sunrise_gold, minimal_white force Light mode (default false)
+    }
+
+    // Apply Dark Class
+    isDark ? root.classList.add('dark') : root.classList.remove('dark');
+    
+    // 2. Apply Theme Class
+    // Remove old theme classes
+    root.classList.remove(
+        'theme-classic', 
+        'theme-soft_dark', 
+        'theme-sunrise_gold', 
+        'theme-neon_focus', 
+        'theme-minimal_white', 
+        'theme-midnight_deep'
+    );
+    // Add new theme class
+    root.classList.add(`theme-${settings.premiumTheme}`);
+
+    // 3. Fonts & Accessibility
     const sizeMap = { sm: '14px', md: '16px', lg: '18px', xl: '20px' };
     root.style.fontSize = sizeMap[settings.fontSize];
     document.body.classList.toggle('high-contrast', settings.highContrast);
     document.body.classList.toggle('reduced-motion', settings.reducedMotion);
     document.body.style.fontFamily = settings.dyslexiaFont ? '"Comic Sans MS", "Chalkboard SE", sans-serif' : '';
+    
   }, [settings]);
 
-  const handleStart = () => setView('setup');
+  const handleStart = () => handleNavigate('setup');
   
-  const handleDemo = () => {
-    setRoutine(DEMO_ROUTINE);
-    setView('result');
-  };
-
   const handleFormSubmit = async (data: UserFormData) => {
     setFormData(data);
     setIsLoading(true);
     try {
       const generatedRoutine = await generateRoutine(data);
       setRoutine(generatedRoutine);
-      setView('result');
+      handleNavigate('result');
     } catch (error) {
       alert("Failed to generate routine. Please try again.");
       console.error(error);
@@ -135,19 +139,17 @@ function AppContent() {
     }
   };
 
-  // Called from Saved Routines to load one
   const handleLoadRoutine = (r: SavedRoutine) => {
     setRoutine(r);
   };
 
-  // Protected Route Logic wrapper
-  const ProtectedView = ({ children }: { children: React.ReactNode }) => {
+  const ProtectedView: React.FC<{ children: React.ReactNode }> = ({ children }) => {
      if (!isAuthenticated) {
        return (
          <div className="min-h-screen pt-24 flex flex-col items-center justify-center p-4 text-center">
             <h2 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">Access Denied</h2>
             <p className="text-slate-500 mb-4">Please log in to access this page.</p>
-            <button onClick={() => setView('home')} className="text-indigo-600 underline">Go Home</button>
+            <button onClick={() => handleNavigate('home')} className="text-indigo-600 underline">Go Home</button>
          </div>
        );
      }
@@ -158,55 +160,79 @@ function AppContent() {
     <div className={`font-sans text-slate-900 dark:text-white transition-colors min-h-screen`}>
       <MotivationalPopup style={formData?.routineStyle} />
       
-      <Navbar onNavigate={setView} currentView={view} />
+      <Navbar 
+        onNavigate={handleNavigate} 
+        onBack={handleBack}
+        currentView={view} 
+      />
       
-      {view === 'settings' && (
-        <SettingsPage 
-          onClose={() => setView(isAuthenticated ? 'dashboard' : 'home')}
-          userData={formData}
-          onUpdateUserData={setFormData}
-          onRegenerate={handleRegenerate}
-          onResetApp={() => setView('home')}
-          currentRoutine={routine}
-        />
+      {view === 'premium' && (
+        <PageTransition>
+          <PremiumPage onClose={handleBack} onNavigate={handleNavigate} />
+        </PageTransition>
       )}
 
-      {view === 'home' && <Hero onStart={handleStart} onDemo={handleDemo} />}
+      {view === 'settings' && (
+        <PageTransition>
+          <SettingsPage 
+            onClose={() => handleNavigate(isAuthenticated ? 'dashboard' : 'home')}
+            userData={formData}
+            onUpdateUserData={setFormData}
+            onRegenerate={handleRegenerate}
+            onResetApp={() => handleNavigate('home')}
+            currentRoutine={routine}
+          />
+        </PageTransition>
+      )}
+
+      {view === 'home' && (
+        <PageTransition>
+          <Hero onStart={handleStart} />
+        </PageTransition>
+      )}
       
       {view === 'dashboard' && (
         <ProtectedView>
-           <Dashboard 
-             onNavigate={setView} 
-             onSetRoutine={handleLoadRoutine} 
-             activeRoutine={routine as SavedRoutine}
-             userData={formData}
-           />
+           <PageTransition>
+             <Dashboard 
+               onNavigate={handleNavigate} 
+               onSetRoutine={handleLoadRoutine} 
+               activeRoutine={routine as SavedRoutine}
+               userData={formData}
+             />
+           </PageTransition>
         </ProtectedView>
       )}
 
       {view === 'saved' && (
         <ProtectedView>
-           <SavedRoutines 
-             onLoadRoutine={handleLoadRoutine} 
-             onNavigate={setView} 
-           />
+           <PageTransition>
+             <SavedRoutines 
+               onLoadRoutine={handleLoadRoutine} 
+               onNavigate={handleNavigate} 
+             />
+           </PageTransition>
         </ProtectedView>
       )}
       
       {view === 'setup' && (
-        <div className="pt-16">
-          <SetupForm onSubmit={handleFormSubmit} isLoading={isLoading} />
-        </div>
+        <PageTransition>
+          <div className="pt-16">
+            <SetupForm onSubmit={handleFormSubmit} isLoading={isLoading} onNavigate={handleNavigate} />
+          </div>
+        </PageTransition>
       )}
       
       {view === 'result' && routine && (
-        <RoutineDisplay 
-          routine={routine} 
-          onReset={() => setView('setup')} 
-          onRegenerate={() => handleRegenerate()} 
-          isLoading={isLoading} 
-          simplifiedMode={settings.simplifiedMode}
-        />
+        <PageTransition>
+          <RoutineDisplay 
+            routine={routine} 
+            onReset={() => handleNavigate('setup')} 
+            onRegenerate={() => handleRegenerate()} 
+            isLoading={isLoading} 
+            simplifiedMode={settings.simplifiedMode}
+          />
+        </PageTransition>
       )}
 
       <AIAssistant currentRoutine={routine} />

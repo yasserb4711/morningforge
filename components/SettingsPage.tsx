@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppSettings, UserFormData, GoalType, RoutineResponse } from '../types';
+import { AppSettings, UserFormData, GoalType, RoutineResponse, PremiumTheme } from '../types';
 import { Button } from './ui/Button';
 import { 
   Palette, 
@@ -21,9 +21,14 @@ import {
   Calendar,
   MessageSquare,
   Zap,
-  Layout
+  Layout,
+  Crown,
+  Lock,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SettingsPageProps {
   onClose: () => void;
@@ -42,6 +47,18 @@ const COLORS = {
   amber: 'bg-amber-600',
 };
 
+const FREE_THEMES: { id: PremiumTheme; name: string; color: string; desc: string }[] = [
+  { id: 'classic', name: 'Classic', color: 'bg-slate-100 border-slate-300', desc: 'Default Look' },
+  { id: 'soft_dark', name: 'Soft Dark', color: 'bg-slate-700 border-slate-500', desc: 'Easy on Eyes' },
+];
+
+const PREMIUM_THEMES: { id: PremiumTheme; name: string; color: string; desc: string }[] = [
+    { id: 'sunrise_gold', name: 'Sunrise Gold', color: 'bg-amber-100 border-amber-400', desc: 'Warm & Energetic' },
+    { id: 'neon_focus', name: 'Neon Focus', color: 'bg-purple-900 border-purple-400', desc: 'High Contrast' },
+    { id: 'minimal_white', name: 'Minimal White', color: 'bg-white border-gray-200', desc: 'Clean & Stark' },
+    { id: 'midnight_deep', name: 'Midnight Deep', color: 'bg-black border-slate-700', desc: 'Pure Black' },
+];
+
 export const SettingsPage: React.FC<SettingsPageProps> = ({ 
   onClose,
   userData,
@@ -51,6 +68,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   currentRoutine
 }) => {
   const { settings, updateSettings, resetSettings } = useSettings();
+  const { user, togglePro } = useAuth();
   const [activeTab, setActiveTab] = React.useState<'appearance' | 'access' | 'profile' | 'notify' | 'data'>('appearance');
   
   // Local state for profile editing to avoid constant re-renders/saves until "Save"
@@ -131,7 +149,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     window.print();
   };
 
-  const TabButton = ({ id, icon: Icon, label }: { id: typeof activeTab, icon: any, label: string }) => (
+  const TabButton: React.FC<{ id: typeof activeTab, icon: any, label: string }> = ({ id, icon: Icon, label }) => (
     <button
       onClick={() => setActiveTab(id)}
       className={`w-full flex items-center p-3 rounded-lg mb-2 transition-colors ${
@@ -142,6 +160,32 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     >
       <Icon className="w-5 h-5 mr-3" />
       {label}
+    </button>
+  );
+
+  const ThemeCard: React.FC<{ theme: { id: PremiumTheme, name: string, color: string, desc: string }, isLocked: boolean }> = ({ theme, isLocked }) => (
+    <button
+      onClick={() => !isLocked && updateSetting('premiumTheme', theme.id)}
+      disabled={isLocked}
+      className={`relative w-full p-3 rounded-xl border flex items-center gap-3 transition-all ${
+        settings.premiumTheme === theme.id 
+          ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' 
+          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-300'
+      } ${isLocked ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+    >
+      <div className={`w-10 h-10 rounded-full border shadow-sm ${theme.color}`}></div>
+      <div className="text-left">
+          <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center">
+             {theme.name}
+             {isLocked && <Lock className="w-3 h-3 ml-2 text-amber-500"/>}
+          </div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400">{theme.desc}</div>
+      </div>
+      {settings.premiumTheme === theme.id && (
+          <div className="ml-auto text-indigo-600 dark:text-indigo-400">
+             <Check className="w-5 h-5"/>
+          </div>
+      )}
     </button>
   );
 
@@ -159,7 +203,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <TabButton id="notify" icon={Bell} label="Notifications" />
             <TabButton id="data" icon={Shield} label="Data & Privacy" />
           </nav>
-          <div className="mt-8 px-3 space-y-2">
+          
+          {/* Demo Toggle for Reviewers */}
+          <div className="mt-8 pt-4 border-t border-slate-200 dark:border-slate-800">
+             <div className="px-3 text-xs uppercase text-slate-400 font-bold mb-2">Demo Controls</div>
+             <button 
+                onClick={togglePro}
+                className={`w-full text-xs p-2 rounded border flex items-center justify-center ${user?.isPro ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-slate-100 text-slate-600 border-slate-300'}`}
+             >
+                {user?.isPro ? 'Pro Active (Click to downgrade)' : 'Free Plan (Click to upgrade)'}
+             </button>
+          </div>
+
+          <div className="mt-4 px-3 space-y-2">
              <Button variant="outline" fullWidth onClick={onClose}>Close</Button>
           </div>
         </div>
@@ -172,26 +228,70 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <div className="space-y-8 animate-fade-in">
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Appearance</h3>
               
+              {/* Mode Selection (Only visible for Classic theme usually, but kept for control) */}
               <div className="space-y-4">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Theme Mode</label>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                   <span>Interface Mode</span>
+                   {settings.premiumTheme !== 'classic' && (
+                       <span className="text-xs font-normal text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">Controlled by active theme</span>
+                   )}
+                </label>
                 <div className="flex gap-2">
-                  {['light', 'dark', 'auto'].map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => updateSetting('theme', mode as any)}
-                      className={`px-4 py-2 rounded-lg border capitalize transition-all ${
-                        settings.theme === mode 
-                          ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 border-slate-800 dark:border-white shadow-md' 
-                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                      }`}
-                    >
-                      {mode}
-                    </button>
-                  ))}
+                  {['light', 'dark', 'auto'].map((mode) => {
+                     const isEffective = settings.premiumTheme === 'classic';
+                     return (
+                        <button
+                        key={mode}
+                        onClick={() => updateSetting('theme', mode as any)}
+                        disabled={!isEffective}
+                        className={`px-4 py-2 rounded-lg border capitalize transition-all ${
+                            settings.theme === mode && isEffective
+                            ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 border-slate-800 dark:border-white shadow-md' 
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        } ${!isEffective ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-300'}`}
+                        >
+                        {mode}
+                        </button>
+                    )
+                  })}
                 </div>
               </div>
 
-              <div className="space-y-4">
+              {/* Themes Grid */}
+              <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                 
+                 {/* Free Themes */}
+                 <div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center">
+                        <Palette className="w-4 h-4 mr-2"/> Free Themes
+                    </h4>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                        {FREE_THEMES.map(theme => (
+                            <ThemeCard key={theme.id} theme={theme} isLocked={false} />
+                        ))}
+                    </div>
+                 </div>
+
+                 {/* Premium Themes */}
+                 <div>
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center">
+                            <Crown className="w-4 h-4 mr-2 text-amber-500"/> Premium Themes
+                        </h4>
+                        {!user?.isPro && (
+                            <span className="text-[10px] font-bold text-white bg-amber-500 px-2 py-0.5 rounded-full">PRO ONLY</span>
+                        )}
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                        {PREMIUM_THEMES.map(theme => (
+                            <ThemeCard key={theme.id} theme={theme} isLocked={!user?.isPro} />
+                        ))}
+                    </div>
+                 </div>
+              </div>
+
+              {/* Accent Color */}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Accent Color</label>
                 <div className="flex gap-3">
                   {(Object.keys(COLORS) as Array<keyof typeof COLORS>).map((color) => (
@@ -208,7 +308,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   ))}
                 </div>
               </div>
-
+              
+              {/* Text Size */}
               <div className="space-y-4">
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center">
                   <Type className="w-4 h-4 mr-2" /> Text Size

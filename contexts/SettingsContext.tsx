@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppSettings, DEFAULT_SETTINGS } from '../types';
+import { useAuth } from './AuthContext';
+import { getUserSettings, saveUserSettings } from '../services/storageService';
 
 interface SettingsContextType {
   settings: AppSettings;
@@ -13,40 +15,44 @@ const SettingsContext = createContext<SettingsContextType>({
   resetSettings: () => {},
 });
 
-// Fixed: Use explicit props type for children instead of React.FC to ensure compatibility
-export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
-  const [settings, setSettings] = useState<AppSettings>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('morningForgeSettings');
-      try {
-        if (saved) {
-           const parsed = JSON.parse(saved);
-           // Deep merge to ensure new keys in notifications are present if they didn't exist in saved data
-           return {
-             ...DEFAULT_SETTINGS,
-             ...parsed,
-             notifications: {
-               ...DEFAULT_SETTINGS.notifications,
-               ...(parsed.notifications || {})
-             }
-           };
+export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+
+  // Load settings when User changes or App mounts
+  useEffect(() => {
+    if (user) {
+        // Load User Settings
+        const userSettings = getUserSettings(user.id);
+        if (userSettings) {
+            setSettings({
+                 ...DEFAULT_SETTINGS,
+                 ...userSettings,
+                 notifications: { ...DEFAULT_SETTINGS.notifications, ...userSettings.notifications }
+            });
+        } else {
+            // If user has no settings, save default for them
+            saveUserSettings(user.id, DEFAULT_SETTINGS);
+            setSettings(DEFAULT_SETTINGS);
         }
-        return DEFAULT_SETTINGS;
-      } catch (e) {
-        return DEFAULT_SETTINGS;
-      }
+    } else {
+        // Guest / Default Settings
+        setSettings(DEFAULT_SETTINGS);
     }
-    return DEFAULT_SETTINGS;
-  });
+  }, [user]);
 
   const updateSettings = (newSettings: AppSettings) => {
     setSettings(newSettings);
-    localStorage.setItem('morningForgeSettings', JSON.stringify(newSettings));
+    if (user) {
+        saveUserSettings(user.id, newSettings);
+    }
   };
 
   const resetSettings = () => {
     setSettings(DEFAULT_SETTINGS);
-    localStorage.setItem('morningForgeSettings', JSON.stringify(DEFAULT_SETTINGS));
+    if (user) {
+        saveUserSettings(user.id, DEFAULT_SETTINGS);
+    }
   };
 
   return (
